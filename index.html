@@ -1139,6 +1139,79 @@
     };
     document.body.appendChild(script);
   </script>
+  <script>
+let gamepads = {};
+const THRESHOLD = 0.5; // Sensitivity threshold for the analog stick
+
+window.addEventListener('gamepadconnected', (event) => {
+    const gp = event.gamepad;
+    gamepads[gp.index] = gp;
+    console.log(`Gamepad ${gp.id} connected.`);
+    requestAnimationFrame(updateGamepads); // Start the polling loop
+});
+
+window.addEventListener('gamepaddisconnected', (event) => {
+    console.log('Gamepad disconnected.');
+    delete gamepads[event.gamepad.index];
+});
+
+function dispatchKeyboardEvent(type, key) {
+    // Create and dispatch the synthetic event on the document body
+    const event = new KeyboardEvent(type, {
+        key: key,
+        bubbles: true,
+        cancelable: true
+    });
+    document.body.dispatchEvent(event);
+}
+
+function updateGamepads() {
+    // Navigator.getGamepads() must be called in a loop for browsers to update the data
+    const currentPads = navigator.getGamepads(); 
+
+    for (const index in gamepads) {
+        const gp = currentPads[index];
+        if (!gp) continue;
+
+        // The left analog stick is typically axes[0] (horizontal) and axes[1] (vertical)
+        const xAxis = gp.axes[0];
+        const yAxis = gp.axes[1];
+
+        // Map analog stick movement to WASD
+        // W (Up)
+        if (yAxis < -THRESHOLD) {
+            dispatchKeyboardEvent('keydown', 'w');
+        } else {
+            dispatchKeyboardEvent('keyup', 'w');
+        }
+        // S (Down)
+        if (yAxis > THRESHOLD) {
+            dispatchKeyboardEvent('keydown', 's');
+        } else {
+            dispatchKeyboardEvent('keyup', 's');
+        }
+        // A (Left)
+        if (xAxis < -THRESHOLD) {
+            dispatchKeyboardEvent('keydown', 'a');
+        } else {
+            dispatchKeyboardEvent('keyup', 'a');
+        }
+        // D (Right)
+        if (xAxis > THRESHOLD) {
+            dispatchKeyboardEvent('keydown', 'd');
+        } else {
+            dispatchKeyboardEvent('keyup', 'd');
+        }
+    }
+
+    requestAnimationFrame(updateGamepads); // Continue the loop
+}
+
+// Security: User interaction is required before gamepad events are fully exposed in some browsers (e.g., Firefox)
+document.body.addEventListener('click', () => {
+    console.log('User interacted with the page. Gamepad polling started.');
+}, { once: true });
+  </script>
 </body>
 
 </html>
